@@ -15,9 +15,9 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.wallet.AutoResolveHelper
 import com.google.android.gms.wallet.PaymentData
-import com.google.android.gms.wallet.PaymentDataRequest
 import com.onlinepayments.client.kotlin.exampleapp.common.PaymentSharedViewModel
 import com.onlinepayments.client.kotlin.exampleapp.common.googlepay.GooglePayPaymentUtil
 import com.onlinepayments.client.kotlin.exampleapp.common.googlepay.GooglePayPaymentViewModel
@@ -40,36 +40,6 @@ class MainActivity : ComponentActivity() {
             ComposeApp(paymentSharedViewModel, launchGooglePay = {
                 launchGooglePay()
             })
-        }
-    }
-
-    /**
-     * Listener for when Google Pay sheet is finished
-     */
-    @Deprecated("@see parent")
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-
-        when (requestCode) {
-            GOOGLE_PAY_REQUEST_CODE -> {
-                when (resultCode) {
-                    RESULT_OK ->
-                        data?.let { intent ->
-                            PaymentData.getFromIntent(intent)?.let(::handleGooglePaySuccess)
-                        }
-
-                    RESULT_CANCELED -> {
-                        // No need to do anything
-                    }
-
-                    AutoResolveHelper.RESULT_ERROR -> {
-                        AutoResolveHelper.getStatusFromIntent(data)?.let { status ->
-                            paymentSharedViewModel.globalErrorMessage.value =
-                                "Google pay loadPaymentData failed with error code: ${status.statusCode}"
-                        }
-                    }
-                }
-            }
         }
     }
 
@@ -151,25 +121,70 @@ class MainActivity : ComponentActivity() {
             specificData
         )
 
-        val paymentDataRequestJson = googlePayUtil.getPaymentDataRequest(
-            amountOfMoney.amount!!,
-            countryCode,
-            amountOfMoney.currencyCode!!
-        ) ?: run {
-            paymentSharedViewModel.globalErrorMessage.value =
-                "Google Pay Can't fetch payment data request"
-            return
-        }
-        val request = PaymentDataRequest.fromJson(paymentDataRequestJson.toString())
+        val paymentRequest =
+            googlePayUtil.getPaymentDataRequest(amountOfMoney, countryCode) ?: run {
+                paymentSharedViewModel.globalErrorMessage.value =
+                    "Google Pay can't fetch payment data request"
+                return
+            }
 
-        // Since loadPaymentData may show the UI asking the user to select a payment method, we use
-        // AutoResolveHelper to wait for the user interacting with it. Once completed,
-        // onActivityResult will be called with the result.
-        AutoResolveHelper.resolveTask(
-            googlePayUtil.paymentsClient.loadPaymentData(request),
-            this,
-            GOOGLE_PAY_REQUEST_CODE
-        )
+        val isReadyToPayRequest =
+            googlePayUtil.getIsReadyToPayRequest(amountOfMoney, countryCode) ?: run {
+                paymentSharedViewModel.globalErrorMessage.value =
+                    "Google Pay can't fetch payment data request"
+                return
+            }
+
+        val isReadyToPayTask = googlePayUtil.paymentsClient.isReadyToPay(isReadyToPayRequest)
+        isReadyToPayTask.addOnCompleteListener { completedTask ->
+            try {
+                val isAvailable = completedTask.getResult(ApiException::class.java)
+                if (isAvailable) {
+                    // Since loadPaymentData may show the UI asking the user to select a payment
+                    // method, we use AutoResolveHelper to wait for the user interacting with it.
+                    // Once completed, onActivityResult will be called with the result.
+                    @Suppress("DEPRECATION")
+                    AutoResolveHelper.resolveTask(
+                        googlePayUtil.paymentsClient.loadPaymentData(paymentRequest),
+                        this,
+                        GOOGLE_PAY_REQUEST_CODE
+                    )
+                }
+            } catch (_: ApiException) {
+                paymentSharedViewModel.globalErrorMessage.value = "Google pay is not available"
+            }
+        }
+    }
+
+    /**
+     * Listener for when Google Pay sheet is finished
+     */
+    @Deprecated("@see parent")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        @Suppress("DEPRECATION")
+        super.onActivityResult(requestCode, resultCode, data)
+
+        when (requestCode) {
+            GOOGLE_PAY_REQUEST_CODE -> {
+                when (resultCode) {
+                    RESULT_OK ->
+                        data?.let { intent ->
+                            PaymentData.getFromIntent(intent)?.let(::handleGooglePaySuccess)
+                        }
+
+                    RESULT_CANCELED -> {
+                        // No need to do anything
+                    }
+
+                    AutoResolveHelper.RESULT_ERROR -> {
+                        AutoResolveHelper.getStatusFromIntent(data)?.let { status ->
+                            paymentSharedViewModel.globalErrorMessage.value =
+                                "Google pay loadPaymentData failed with error code: ${status.statusCode}"
+                        }
+                    }
+                }
+            }
+        }
     }
 
     /**
@@ -207,7 +222,6 @@ class MainActivity : ComponentActivity() {
     }
 
     companion object {
-
         private const val GOOGLE_PAY_TOKEN_FIELD_ID = "encryptedPaymentData"
         private const val GOOGLE_PAY_REQUEST_CODE = 991
     }

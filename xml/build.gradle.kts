@@ -17,8 +17,8 @@ android {
     defaultConfig {
         applicationId = "com.onlinepayments.client.kotlin.exampleapp.xml"
         minSdk = 21
-        compileSdk = 34
-        targetSdk = 34
+        compileSdk = 35
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
     }

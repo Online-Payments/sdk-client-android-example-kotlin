@@ -42,20 +42,43 @@ object StringProvider {
         paymentProductFieldId: String,
         context: Context
     ): String {
+        return getPaymentProductFieldPlaceholderText(
+            paymentProductId,
+            paymentProductFieldId,
+            "",
+            context
+        )
+    }
+
+    /**
+     * Gets the PaymentProductField placeholder value.
+     * The placeholder can be different through overrides per payment product.
+     * @param paymentProductId, the identifier of the payment product which is needed for retrieving
+     * @param paymentProductFieldId, the identifier of the payment product which is needed for retrieving
+     * @return the retrieved value
+     */
+    fun getPaymentProductFieldPlaceholderText(
+        paymentProductId: String,
+        paymentProductFieldId: String,
+        postfix: String,
+        context: Context
+    ): String {
         // Check for an overridden version first
         val identifierKeyOverride: String =
             PAYMENT_PRODUCT_PREFIX +
                     paymentProductId +
                     PRODUCT_FIELDS_INFIX +
                     paymentProductFieldId +
-                    PLACEHOLDER_POSTFIX
+                    PLACEHOLDER_POSTFIX +
+                    postfix
         val result = retrieveString(identifierKeyOverride, context)
         return if (!isBadIdentifierKey(result)) {
             result
         } else retrieveString(
             PAYMENT_PRODUCT_FIELD_PREFIX +
                     paymentProductFieldId +
-                    PLACEHOLDER_POSTFIX,
+                    PLACEHOLDER_POSTFIX +
+                    postfix,
             context
         )
     }

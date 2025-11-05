@@ -1,7 +1,7 @@
 plugins {
     id("com.android.application")
     id("kotlin-android")
-    id("org.jetbrains.kotlin.plugin.compose") version "2.0.0"
+    id("org.jetbrains.kotlin.plugin.compose") version "2.2.21"
 }
 
 java {
@@ -16,8 +16,8 @@ android {
     defaultConfig {
         applicationId = "com.onlinepayments.client.kotlin.exampleapp.compose"
         minSdk = 21
-        compileSdk = 34
-        targetSdk = 34
+        compileSdk = 35
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 

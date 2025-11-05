@@ -21,11 +21,13 @@ import androidx.core.content.ContextCompat
 import androidx.core.widget.doAfterTextChanged
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
+import com.onlinepayments.client.kotlin.exampleapp.common.utils.Constants.EXPIRY_DATE
 import com.onlinepayments.client.kotlin.exampleapp.common.utils.StringProvider
 import com.onlinepayments.client.kotlin.exampleapp.xml.R
 import com.onlinepayments.sdk.client.android.model.paymentproduct.PaymentProductField
 import com.onlinepayments.sdk.client.android.model.paymentproduct.displayhints.DisplayHintsProductFields.PreferredInputType
 import com.onlinepayments.sdk.client.android.model.validation.ValidationRuleLength
+import com.onlinepayments.sdk.client.android.model.validation.ValidationRuleRegex
 import com.squareup.picasso.Picasso
 
 /**
@@ -78,10 +80,21 @@ class PaymentCardField(context: Context, attributeSet: AttributeSet) :
         this.paymentProductField = paymentProductField
         this.cardFieldAfterTextChangedListener = cardFieldAfterTextChangedListener
         cardField.visibility = VISIBLE
+
+        // Determine suffix for expiry date field based on year format validation
+        // Check if the field validates against a full year format (e.g., 122035)
+        val hasFullYearFormat = paymentProductField.id == EXPIRY_DATE
+                && paymentProductField.dataRestrictions.getValidationRules()
+            .filterIsInstance<ValidationRuleRegex>()
+            .any { it.pattern.toRegex().matches("122035") }
+
+        val suffix = if (hasFullYearFormat) "_full" else ""
+
         cardFieldTextInputEditText.hint =
             StringProvider.getPaymentProductFieldPlaceholderText(
                 paymentProductId,
                 paymentProductField.id,
+                suffix,
                 context
             )
         setEditTextInputType(
@@ -166,7 +179,6 @@ class PaymentCardField(context: Context, attributeSet: AttributeSet) :
     private fun setEditTextInputType(preferredInputType: PreferredInputType) {
         val inputType = when (preferredInputType) {
             PreferredInputType.INTEGER_KEYBOARD -> InputType.TYPE_CLASS_NUMBER
-            PreferredInputType.STRING_KEYBOARD -> InputType.TYPE_CLASS_TEXT
             PreferredInputType.PHONE_NUMBER_KEYBOARD -> InputType.TYPE_CLASS_PHONE
             PreferredInputType.EMAIL_ADDRESS_KEYBOARD -> InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
             PreferredInputType.DATE_PICKER -> InputType.TYPE_DATETIME_VARIATION_DATE

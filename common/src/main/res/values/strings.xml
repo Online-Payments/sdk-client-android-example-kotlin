@@ -82,6 +82,7 @@
     <string name="paymentProductFields_emailAddress_placeholder">you@domain.com</string>
     <string name="paymentProductFields_expiryDate_label">Expiry date</string>
     <string name="paymentProductFields_expiryDate_placeholder">MM/YY</string>
+    <string name="paymentProductFields_expiryDate_placeholder_full">MM/YYYY</string>
     <string name="paymentProductFields_firstName_label">First name</string>
     <string name="paymentProductFields_firstName_placeholder">First name</string>
     <string name="paymentProductFields_fiscalNumber_label">Fiscal number</string>

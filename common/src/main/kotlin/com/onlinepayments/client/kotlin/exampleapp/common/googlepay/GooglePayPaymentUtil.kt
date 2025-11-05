@@ -12,9 +12,12 @@ package com.onlinepayments.client.kotlin.exampleapp.common.googlepay
 
 import android.app.Activity
 import android.util.Log
+import com.google.android.gms.wallet.IsReadyToPayRequest
+import com.google.android.gms.wallet.PaymentDataRequest
 import com.google.android.gms.wallet.PaymentsClient
 import com.google.android.gms.wallet.Wallet
 import com.google.android.gms.wallet.WalletConstants
+import com.onlinepayments.sdk.client.android.model.AmountOfMoney
 import com.onlinepayments.sdk.client.android.model.paymentproduct.specificdata.PaymentProduct320SpecificData
 import org.json.JSONArray
 import org.json.JSONException
@@ -148,7 +151,11 @@ class GooglePayPaymentUtil(
      * @throws JSONException
      */
     @Throws(JSONException::class)
-    private fun getTransactionInfo(price: Long, countryCode: String, currencyCode: String): JSONObject {
+    private fun getTransactionInfo(
+        price: Long,
+        countryCode: String,
+        currencyCode: String
+    ): JSONObject {
         return JSONObject().apply {
             put("totalPrice", (price / 100f).toString())
             put("totalPriceStatus", "FINAL")
@@ -159,14 +166,51 @@ class GooglePayPaymentUtil(
 
     /**
      * An object describing information requested in a Google Pay payment sheet
-     *
-     * @return Payment data expected by your app.
      */
-    fun getPaymentDataRequest(price: Long, countryCode: String, currencyCode: String): JSONObject? {
+    fun getPaymentDataRequest(
+        amountOfMoney: AmountOfMoney,
+        countryCode: String,
+    ): PaymentDataRequest? {
+        val request = getPaymentDataRequestJson(amountOfMoney, countryCode)
+
+        if (request != null) {
+            return PaymentDataRequest.fromJson(request.toString())
+        }
+
+        return null
+    }
+
+    /**
+     * An object required to check whether Google Pay is ready.
+     */
+    fun getIsReadyToPayRequest(
+        amountOfMoney: AmountOfMoney,
+        countryCode: String,
+    ): IsReadyToPayRequest? {
+        val request = getPaymentDataRequestJson(amountOfMoney, countryCode)
+
+        if (request != null) {
+            return IsReadyToPayRequest.fromJson(request.toString())
+        }
+
+        return null
+    }
+
+    private fun getPaymentDataRequestJson(
+        amountOfMoney: AmountOfMoney,
+        countryCode: String,
+    ): JSONObject? {
         return try {
             JSONObject(baseRequest.toString()).apply {
                 put("allowedPaymentMethods", JSONArray().put(cardPaymentMethod))
-                put("transactionInfo", getTransactionInfo(price, countryCode, currencyCode))
+                put(
+                    "transactionInfo",
+                    getTransactionInfo(
+                        amountOfMoney.amount!!,
+                        countryCode,
+                        amountOfMoney.currencyCode!!
+                    )
+                )
                 put("merchantInfo", merchantInfo)
             }
         } catch (e: JSONException) {

@@ -18,6 +18,7 @@ import com.onlinepayments.sdk.client.android.model.paymentproduct.AccountOnFile
 import com.onlinepayments.sdk.client.android.model.paymentproduct.PaymentProductField
 import com.onlinepayments.sdk.client.android.model.validation.ValidationErrorMessage
 import com.onlinepayments.sdk.client.android.model.validation.ValidationRuleLength
+import com.onlinepayments.sdk.client.android.model.validation.ValidationRuleRegex
 
 class CardScreenViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -126,10 +127,18 @@ class CardScreenViewModel(application: Application) : AndroidViewModel(applicati
         validationRuleLength: ValidationRuleLength?,
         context: Context
     ) {
+        // Check if the field validates against a full year format (e.g., 12/2035)
+        val hasFullYearFormat = paymentProductField.dataRestrictions.getValidationRules()
+            .filterIsInstance<ValidationRuleRegex>()
+            .any { it.pattern.toRegex().matches("122035") }
+
+        val suffix = if (hasFullYearFormat) "_full" else ""
+
         cardFields.expiryDateField.apply {
             label = StringProvider.getPaymentProductFieldPlaceholderText(
                 paymentProductId,
                 paymentProductField.id,
+                suffix,
                 context
             )
             mask = paymentProductField.displayHints.mask

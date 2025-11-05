@@ -14,7 +14,7 @@ android {
 
     defaultConfig {
         minSdk = 21
-        compileSdk = 34
+        compileSdk = 35
     }
 
     buildFeatures {
